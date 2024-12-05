@@ -1,6 +1,6 @@
 'use client'
 
-import { EventCategory } from '@prisma/client'
+import { Event, EventCategory } from '@prisma/client'
 import { useQuery } from '@tanstack/react-query'
 import EmptyCategoryState from './empty-category-state'
 import { useMemo, useState } from 'react'
@@ -8,8 +8,11 @@ import { useSearchParams } from 'next/navigation'
 import { client } from '@/lib/client'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import Card from '@/components/ui/card'
-import { BarChart } from 'lucide-react'
+import { ArrowUpDown, BarChart } from 'lucide-react'
 import { isAfter, isToday, startOfMonth, startOfWeek } from 'date-fns'
+import { ColumnDef, Row } from '@tanstack/react-table'
+import { Button } from '@/components/ui/button'
+import { cn } from '@/utils'
 
 interface CategoryPageContentProps {
   hasEvents: boolean
@@ -53,6 +56,57 @@ const CategoryPageContent = ({
     refetchOnWindowFocus: false,
     enabled: pollingData.hasEvents,
   })
+
+  const columns: ColumnDef<Event>[] = useMemo(
+    () => [
+      {
+        accessorKey: 'category',
+        header: 'Category',
+        cell: () => <span>{category.name || 'Uncategorized'}</span>,
+      },
+      {
+        accessorKey: 'createdAt',
+        header: ({ column }) => {
+          return (
+            <Button
+              variant={'ghost'}
+              onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+            >
+              Date
+              <ArrowUpDown className="ml-2 size-4" />
+            </Button>
+          )
+        },
+        cell: ({ row }) => {
+          return new Date(row.getValue('createdAt')).toLocaleString()
+        },
+      },
+      ...(data?.events[0]
+        ? Object.keys(data.events[0].fields as object).map((field) => ({
+            accessorFn: (row: Event) => (row.fields as Record<string, any>)[field],
+            header: field,
+            cell: ({ row }: { row: Row<Event> }) =>
+              (row.original.fields as Record<string, any>)[field] || '-',
+          }))
+        : []),
+      {
+        accessorKey: 'deliveryStatus',
+        header: 'Delivery Status',
+        cell: ({ row }) => (
+          <span
+            className={cn('px-2 py-1 rounded-full text-xs font-semibold', {
+              'bg-green-100 text-green-800': row.getValue('deliveryStatus') === 'DELIVERED',
+              'bg-red-100 text-red-800': row.getValue('deliveryStatus') === 'FAILED',
+              'bg-yellow-100 text-yellow-800': row.getValue('deliveryStatus') === 'PENDING',
+            })}
+          >
+            {row.getValue('deliveryStatus')}
+          </span>
+        ),
+      },
+    ],
+    [category.name, data?.events]
+  )
 
   const numericFieldSums = useMemo(() => {
     if (!data?.events || data?.events.length === 0) {
