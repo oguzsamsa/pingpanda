@@ -10,9 +10,29 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import Card from '@/components/ui/card'
 import { ArrowUpDown, BarChart } from 'lucide-react'
 import { isAfter, isToday, startOfMonth, startOfWeek } from 'date-fns'
-import { ColumnDef, Row } from '@tanstack/react-table'
+import {
+  ColumnDef,
+  ColumnFiltersState,
+  flexRender,
+  getCoreRowModel,
+  getFilteredRowModel,
+  getPaginationRowModel,
+  getSortedRowModel,
+  Row,
+  SortingState,
+  useReactTable,
+} from '@tanstack/react-table'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/utils'
+import Heading from '@/components/heading'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 
 interface CategoryPageContentProps {
   hasEvents: boolean
@@ -107,6 +127,28 @@ const CategoryPageContent = ({
     ],
     [category.name, data?.events]
   )
+
+  const [sorting, setSorting] = useState<SortingState>([])
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
+
+  const table = useReactTable({
+    data: data?.events || [],
+    columns,
+    getCoreRowModel: getCoreRowModel(),
+    onSortingChange: setSorting,
+    getSortedRowModel: getSortedRowModel(),
+    onColumnFiltersChange: setColumnFilters,
+    getFilteredRowModel: getFilteredRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    manualPagination: true,
+    pageCount: Math.ceil((data?.eventsCount || 0) / pagination.pageSize),
+    onPaginationChange: setPagination,
+    state: {
+      sorting,
+      columnFilters,
+      pagination,
+    },
+  })
 
   const numericFieldSums = useMemo(() => {
     if (!data?.events || data?.events.length === 0) {
@@ -210,6 +252,78 @@ const CategoryPageContent = ({
           </div>
         </TabsContent>
       </Tabs>
+
+      <div className="flex flex-col gap-4">
+        <div className="flex items-center justify-between">
+          <div className="w-full flex flex-col gap-4">
+            <Heading className="text-3xl">Event overview</Heading>
+          </div>
+        </div>
+        <Card className="px-6 py-4">
+          <Table>
+            <TableHeader>
+              {table.getHeaderGroups().map((headerGroup) => (
+                <TableRow key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => (
+                    <TableHead key={header.id}>
+                      {header.isPlaceholder
+                        ? null
+                        : flexRender(header.column.columnDef.header, header.getContext())}
+                    </TableHead>
+                  ))}
+                </TableRow>
+              ))}
+            </TableHeader>
+            <TableBody>
+              {isFetching ? (
+                [...Array(5)].map((_, rowIndex) => (
+                  <TableRow key={rowIndex}>
+                    {columns.map((_, cellIndex) => (
+                      <TableCell key={cellIndex}>
+                        <div className="h-4 w-full bg-gray-200 animate-pulse rounded" />
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))
+              ) : table.getRowModel().rows.length ? (
+                table.getRowModel().rows.map((row) => (
+                  <TableRow key={row.id}>
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell key={cell.id}>
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={columns.length} className="h-24 text-center">
+                    No results
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </Card>
+      </div>
+      <div className="flex items-center justify-end space-x-2 py-4">
+        <Button
+          variant={'outline'}
+          size={'sm'}
+          onClick={() => table.previousPage()}
+          disabled={!table.getCanPreviousPage() || isFetching}
+        >
+          Previous
+        </Button>
+        <Button
+          variant={'outline'}
+          size={'sm'}
+          onClick={() => table.nextPage()}
+          disabled={!table.getCanNextPage() || isFetching}
+        >
+          Next
+        </Button>
+      </div>
     </div>
   )
 }
