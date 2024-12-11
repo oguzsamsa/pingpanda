@@ -57,10 +57,6 @@ const CategoryPageContent = ({
     initialData: { hasEvents: initialHasEvents },
   })
 
-  if (!pollingData.hasEvents) {
-    return <EmptyCategoryState categoryName={category.name} />
-  }
-
   const { data, isFetching } = useQuery({
     queryKey: ['events', category.name, pagination.pageIndex, pagination.pageSize, activeTab],
     queryFn: async () => {
@@ -216,6 +212,10 @@ const CategoryPageContent = ({
         </Card>
       )
     })
+  }
+
+  if (!pollingData.hasEvents) {
+    return <EmptyCategoryState categoryName={category.name} />
   }
 
   return (
