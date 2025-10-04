@@ -14,9 +14,9 @@ const eb_garamond = EB_Garamond({
 })
 
 export const metadata: Metadata = {
-  title: 'jStack App',
-  description: 'Created using jStack',
-  icons: [{ rel: 'icon', url: '/favicon.ico' }],
+  title: 'PingPanda',
+  description: 'A Discord bot to monitor website uptime and performance.',
+  icons: [{ rel: 'icon', url: '/brand-asset-profile-picture.png' }],
 }
 
 export default function RootLayout({
